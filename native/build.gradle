@@ -1,0 +1,48 @@
+import org.apache.tools.ant.taskdefs.condition.Os
+
+plugins {
+    id 'cpp-library'
+    id 'cpp-unit-test'
+}
+
+
+//def JNI_DIR = System.properties['java.home'] + "/include"
+//println "Building with java JMI api directory: $JNI_DIR"
+
+library {
+    baseName = 'hello-jni'
+    targetMachines = [
+            machines.linux.x86_64,
+            machines.windows.x86,
+            machines.windows.x86_64,
+            machines.macOS.x86_64
+    ]
+    linkage = [Linkage.STATIC, Linkage.SHARED]
+    binaries.configureEach {
+
+        getJmiDependencyFlags().forEach {
+            compileTask.get().compilerArgs.add(it)
+        }
+    }
+}
+
+List<String> getJmiDependencyFlags() {
+    def jmiIncludeDir = System.properties['java.home'] + '/include'
+    println("including JMI home dir $jmiIncludeDir")
+
+    def jmiOsDir, flagPrefix
+
+    if (Os.isFamily(Os.FAMILY_UNIX)) {
+        jmiOsDir = jmiIncludeDir + "/linux"
+        flagPrefix = "-I"
+    } else if (Os.isFamily(Os.FAMILY_MAC)) {
+        jmiOsDir = jmiIncludeDir + "/darwin"
+        flagPrefix = "-I"
+    } else if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+        jmiOsDir = jmiIncludeDir + "/win32"
+        flagPrefix = "/I"
+    }
+    println("including JMI OS home dir $jmiOsDir")
+
+    return ["$flagPrefix$jmiIncludeDir", "$flagPrefix$jmiOsDir"]
+}

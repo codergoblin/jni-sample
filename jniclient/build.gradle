@@ -1,0 +1,41 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+mainClassName = "HelloJni"
+// Set directory of where the lib file is so the jvm can load it
+applicationDefaultJvmArgs = ["-Djava.library.path=${project.projectDir}/native"]
+
+group 'org.example'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
+
+task importNative {
+    doLast {
+        def file = fileTree(new File(project(":native").buildDir, "lib"))
+                .filter { it.isFile() }
+                .filter { it.name.endsWith(".so") || it.name.endsWith(".dll") || it.name.endsWith(".dylib") }
+                .first()
+        println("Copying $file  ...")
+        copy {
+            from(file)
+            into("$projectDir/native")
+        }
+    }
+}
+
+task deleteBinaries(type: Delete) {
+    delete files("$projectDir/native")
+}
+
+compileJava.dependsOn ":native:build"
+compileJava.finalizedBy importNative
+clean.finalizedBy deleteBinaries
